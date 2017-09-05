@@ -1,6 +1,7 @@
 <img id="image"></img>
 
 <script src="js/vendor/jquery-3.2.1.js"></script>
+<script src="js/vendor/underscore-1.8.3.js"></script>
 <script src="js/util/math_util.js"></script>
 <script src="js/BinaryImage.js"></script>
 <script src="js/Bitstream.js"></script>
@@ -11,7 +12,7 @@
 
 <script>
 var img = document.getElementById('image');
-$(img).attr("src", "img/angel2.png");
+$(img).attr("src", "img/doggy_iris.gif");
 $(img).on("load", function(){
 	console.log("loaded");
 
@@ -20,6 +21,6 @@ $(img).on("load", function(){
 	canvas.height = img.height;
 	canvas.getContext('2d').drawImage(img, 0, 0, img.width, img.height);
 
-	var enc = new FancyEncoder(canvas, "1bpp_monochrome_rle_xor_vlq");
+	var enc = new FancyEncoder(canvas, "8bpp_palette");
 });
 </script>

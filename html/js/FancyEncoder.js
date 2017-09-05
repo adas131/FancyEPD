@@ -1,3 +1,39 @@
+function logBytes(ar)
+{
+	var str = "";
+	while (ar.length) {
+		str += "\t";
+
+		var chunk = ar.splice(0, 20);
+
+		while (chunk.length) {
+			str += ("   " + chunk.shift()).substr(-3) + ",";
+		}
+
+		str += "\n";
+	}
+
+	console.log(str);
+}
+
+function logBytes_signed(ar)
+{
+	var str = "";
+	while (ar.length) {
+		str += "\t";
+
+		var chunk = ar.splice(0, 12);
+
+		while (chunk.length) {
+			str += ("   " + chunk.shift()).substr(-4) + ",";
+		}
+
+		str += "\n";
+	}
+
+	console.log(str);
+}
+
 function FancyEncoder(canvas, format)
 {
 	var self = this;
@@ -24,6 +60,125 @@ function FancyEncoder(canvas, format)
 				byte = 0xff - byte;
 				ar.push(byte);
 			}
+		}
+		break;
+
+		case "8bpp_palette":
+		{
+			var bgColor = 0x444444;
+			var white = 0xffffff;
+			var pal = [bgColor, 0x0, white];
+
+			function palLookup(hex) {
+				for (var p = 0; p < pal.length; p++) {
+					if (hex == pal[p]) return p;
+				}
+				console.log("add:", hex.toString(16));
+				pal.push(hex);
+				return pal.length - 1;
+			}
+
+			var byte = 0x0;
+			for (var i = 0; i < data.length; i += 4) {
+				var hex = (data[i] << 16) | (data[i+1] << 8) | (data[i+2]);
+				var p0 = palLookup(hex);
+
+				ar.push(p0);
+			}
+
+			/*
+			console.log(_.map(pal, function(p){
+				return "0x" + p.toString(16);
+			}).join(", "));
+			console.log("};");
+			*/
+
+			function color565(hex) {
+				return ((hex & 0xf80000) >> 8) |
+				       ((hex & 0x00fc00) >> 5) |
+				       ((hex & 0x0000f8) >> 3);
+			}
+
+			console.log("static const uint16_t EYE_PALETTE[] = {");
+			console.log(_.map(pal, function(p){
+				return "0x" + color565(p).toString(16);
+			}).join(", "));
+			console.log("};\n")
+
+			console.log("static const uint8_t IRIS_COLORS[] = {");
+			logBytes(ar);
+			console.log("};\n")
+
+			// Map of distance to edge. Used for skewing texture
+			// to reveal pupil. To reduce flash memory size:
+			// only build the upper-left quarter of the map.
+			var map = [];
+			var distanceBytes = [];
+
+			for (var y = 0; y < canvas.height / 2; y++) {
+				for (var x = 0; x < canvas.width / 2; x++) {
+					var dx = x - (canvas.width / 2);
+					var dy = y - (canvas.height / 2);
+					var dist = Math.sqrt((dx * dx) + (dy * dy));
+
+					// Outside the circle?
+					if (dist >= (canvas.width / 2)) {
+						map.push(0, 0);
+						distanceBytes.push(0);
+
+					} else {
+						var angle = Math.atan2(dy, dx);
+						var invDist = 1.0 - (dist / (canvas.width / 2));
+						var distInt8 = invDist * 0x7f;
+						map.push(-Math.round(Math.cos(angle) * distInt8));
+						map.push(-Math.round(Math.sin(angle) * distInt8));
+						distanceBytes.push(Math.round(invDist * 0xff));
+					}
+				}
+			}
+
+			console.log("static const int8_t IRIS_ANGLES[] = {");
+			logBytes(map);
+			console.log("};\n");
+
+			console.log("static const uint8_t IRIS_DISTANCES[] = {");
+			logBytes(distanceBytes);
+			console.log("};\n");
+
+			// Need sclera circle. Store as 1bpp?
+			var sclera = [];
+			var byte = 0x0;
+			var mask = 0x80;
+			var y = 0;
+			while (y < 110) {
+				var x = 0;
+				while (x < 110) {
+
+					var dx = (110 - x);
+					var dy = (110 - y);
+					var outside = Math.sqrt((dx * dx) + (dy * dy)) > 110;
+
+					if (outside) byte |= mask;
+
+					mask >>= 1;
+					if (!mask) {
+						sclera.push(byte);
+						byte = 0x0;
+						mask = 0x80;
+					}
+
+					x++;
+				}
+				y++;
+			}
+
+			if (mask != 0x80) sclera.push(byte);
+
+			console.log("static const uint8_t SCLERA_1BPP[] = {");
+			logBytes(sclera);
+			console.log("};\n");
+
+			return;
 		}
 		break;
 
@@ -169,19 +324,5 @@ function FancyEncoder(canvas, format)
 
 	console.log(format, ":: LENGTH:", ar.length);
 
-	var str = "";
-	while (ar.length) {
-		str += "\t";
-
-		var chunk = ar.splice(0, 16);
-
-		while (chunk.length) {
-			str += ("   " + chunk.shift()).substr(-3) + ",";
-		}
-
-		str += "\n";
-	}
-
-	console.log(str);
-
+	logBytes(ar);
 }
