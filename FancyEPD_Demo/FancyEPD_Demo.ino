@@ -51,17 +51,18 @@ void loop() {
 	// Angel
 	if (DO_ROTATION) epd.setRotation(0);
 	epd.setBorderColor(0xff);	// black
-	epd.updateScreenWithImage(angel_4bit, k_image_4bit_monochrome, k_update_quick_refresh);
+	epd.updateScreenWithImage(angel, k_image_4bit_monochrome, k_update_quick_refresh);
 	delay(DELAY_BETWEEN_IMAGES_MS);
 
 	// Angel
 	epd.setBorderColor(0x00);	// white
-	epd.updateScreenWithImage(angel2_8bit, k_image_8bit_monochrome, k_update_quick_refresh);
+	epd.updateScreenWithImage(angel2, k_image_4bit_monochrome, k_update_quick_refresh);
 	delay(DELAY_BETWEEN_IMAGES_MS);
 
-	// Doggy
-	epd.setBorderColor(0x40);	// grey-ish
-	epd.updateScreenWithImage(doggy_2bit, k_image_2bit_monochrome, k_update_quick_refresh);
+	// Escher dragon
+	//epd.setBorderColor(0x40);	// grey-ish
+	epd.setBorderColor(0xff);	// black
+	epd.updateScreenWithImage(escher_dragon, k_image_4bit_monochrome);
 	delay(DELAY_BETWEEN_IMAGES_MS);
 }
 
